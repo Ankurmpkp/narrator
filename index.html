@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Narrator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink: #1a1410; --ink3: #6b5c4e;
+  --parchment: #f5f0e8; --parchment2: #ede6d6; --parchment3: #e4dac8;
+  --gold: #8b6914; --rule: rgba(139,105,20,0.25);
+  --active-voice: #5c3d1a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e8dfd0; --ink3: #8a7a6a;
+    --parchment: #1c1810; --parchment2: #231f16; --parchment3: #2a251a;
+    --gold: #c49a2a; --rule: rgba(196,154,42,0.2);
+    --active-voice: #e8c060;
+  }
+}
+body { background: var(--parchment); font-family: 'Crimson Pro', serif; color: var(--ink); min-height: 100vh; }
+
+.book-header { text-align: center; padding: 2.5rem 2rem 1.5rem; border-bottom: 1px solid var(--rule); }
+.book-header::before { content: '❧'; display: block; font-size: 18px; color: var(--gold); margin-bottom: 0.5rem; opacity: 0.7; }
+.book-title { font-family: 'IM Fell English', serif; font-size: 26px; font-weight: 400; letter-spacing: 0.02em; }
+.book-subtitle { font-style: italic; font-size: 14px; color: var(--ink3); margin-top: 4px; letter-spacing: 0.06em; }
+.rule-ornament { display: flex; align-items: center; gap: 12px; margin: 1.2rem auto 0; max-width: 200px; }
+.rule-line { flex: 1; height: 0.5px; background: var(--rule); }
+.rule-diamond { width: 5px; height: 5px; background: var(--gold); transform: rotate(45deg); opacity: 0.6; flex-shrink: 0; }
+
+.body { padding: 0 2rem 3rem; max-width: 700px; margin: 0 auto; }
+.section-label { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink3); margin-bottom: 8px; display: block; }
+
+/* ── Scraper ── */
+.scraper-section { margin-top: 2rem; background: var(--parchment2); border: 0.5px solid var(--rule); border-radius: 4px; padding: 18px 20px; }
+.scraper-title { font-family: 'IM Fell English', serif; font-size: 16px; margin-bottom: 4px; }
+.scraper-sub { font-size: 12px; font-style: italic; color: var(--ink3); margin-bottom: 14px; line-height: 1.5; }
+.cors-note { font-size: 12px; font-style: italic; color: var(--ink3); background: var(--parchment3); border: 0.5px solid var(--rule); border-radius: 3px; padding: 8px 12px; margin-bottom: 14px; line-height: 1.6; }
+.cors-note strong { font-style: normal; }
+.scraper-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.field-group { display: flex; flex-direction: column; gap: 5px; }
+.field-group label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink3); }
+.chapter-input { width: 90px; padding: 8px 12px; background: var(--parchment); border: 0.5px solid var(--rule); border-radius: 3px; font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--ink); outline: none; transition: border-color 0.15s; }
+.chapter-input:focus { border-color: var(--gold); }
+.proxy-input { flex: 1; min-width: 200px; padding: 8px 12px; background: var(--parchment); border: 0.5px solid var(--rule); border-radius: 3px; font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--ink); outline: none; transition: border-color 0.15s; }
+.proxy-input:focus { border-color: var(--gold); }
+.proxy-input::placeholder { color: var(--ink3); font-style: italic; }
+.btn-fetch { display: flex; align-items: center; gap: 8px; padding: 9px 20px; background: var(--ink); color: var(--parchment); border: none; border-radius: 3px; font-family: 'IM Fell English', serif; font-size: 14px; cursor: pointer; transition: opacity 0.15s; white-space: nowrap; }
+.btn-fetch:hover { opacity: 0.82; }
+.btn-fetch:active { transform: scale(0.98); }
+.btn-fetch:disabled { opacity: 0.4; cursor: not-allowed; }
+.fetch-spinner { width: 12px; height: 12px; border: 1.5px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; flex-shrink: 0; }
+.btn-fetch.loading .fetch-spinner { display: block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.fetch-progress { margin-top: 10px; display: none; }
+.fetch-progress-bar { height: 2px; background: var(--rule); border-radius: 1px; overflow: hidden; margin-bottom: 5px; }
+.fetch-progress-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.4s ease; }
+.fetch-status { margin-top: 8px; font-size: 12px; font-style: italic; color: var(--ink3); min-height: 18px; line-height: 1.5; }
+.fetch-status.error { color: #a03030; }
+.fetch-status.success { color: #3a6b35; }
+
+/* ── Chapter selector ── */
+.chapter-selector { margin-bottom: 4px; }
+.chapter-selector-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink3); margin-bottom: 8px; }
+.chapter-selector-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.arrow-btn { width: 34px; height: 34px; border-radius: 50%; border: 0.5px solid var(--rule); background: var(--parchment); color: var(--ink); font-size: 16px; cursor: pointer; transition: all 0.12s; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.arrow-btn:hover { border-color: var(--gold); color: var(--gold); }
+.arrow-btn:active { transform: scale(0.93); }
+.chapter-range-display { flex: 1; text-align: center; font-family: 'IM Fell English', serif; font-size: 18px; color: var(--ink); padding: 6px 0; }
+.jump-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.jump-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink3); margin-right: 2px; }
+.jump-btn { padding: 3px 10px; border: 0.5px solid var(--rule); border-radius: 2px; background: transparent; font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--ink3); cursor: pointer; transition: all 0.12s; }
+.jump-btn:hover { border-color: var(--gold); color: var(--active-voice); background: var(--parchment3); }
+.jump-btn:active { transform: scale(0.95); }
+
+/* ── Sync ── */
+.sync-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.sync-input { flex: 1; min-width: 180px; padding: 7px 11px; background: var(--parchment); border: 0.5px solid var(--rule); border-radius: 3px; font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--ink); outline: none; transition: border-color 0.15s; }
+.sync-input:focus { border-color: var(--gold); }
+.sync-input::placeholder { color: var(--ink3); font-style: italic; }
+.btn-sync { padding: 7px 14px; background: transparent; border: 0.5px solid var(--rule); border-radius: 3px; font-family: 'Crimson Pro', serif; font-style: italic; font-size: 13px; color: var(--ink3); cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+.btn-sync:hover { border-color: var(--gold); color: var(--ink); }
+.btn-sync.syncing { opacity: 0.5; cursor: not-allowed; }
+.sync-status { font-size: 11px; font-style: italic; color: var(--ink3); margin-top: 5px; min-height: 16px; }
+.sync-status.ok { color: #3a6b35; }
+.sync-status.err { color: #a03030; }
+
+/* ── Chapter Text ── */
+.chapter-section { margin-top: 1.5rem; }
+textarea { width: 100%; min-height: 200px; resize: vertical; background: var(--parchment2); border: 0.5px solid var(--rule); border-radius: 4px; padding: 18px 20px; font-family: 'Crimson Pro', serif; font-size: 17px; line-height: 1.85; color: var(--ink); outline: none; transition: border-color 0.2s; }
+textarea:focus { border-color: var(--gold); }
+textarea::placeholder { color: var(--ink3); font-style: italic; }
+.meta-row { display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: var(--ink3); font-style: italic; }
+
+/* ── Voices ── */
+.voices-section { margin-top: 2rem; }
+.voices-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 10px; }
+.voice-card { background: var(--parchment2); border: 0.5px solid var(--rule); border-radius: 4px; padding: 12px 14px; cursor: pointer; transition: all 0.15s; text-align: left; position: relative; overflow: hidden; }
+.voice-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2.5px; background: var(--gold); opacity: 0; transition: opacity 0.15s; }
+.voice-card:hover { border-color: var(--gold); }
+.voice-card:hover::before { opacity: 0.4; }
+.voice-card.active { background: var(--parchment3); border-color: var(--gold); }
+.voice-card.active::before { opacity: 1; }
+.voice-archetype { font-family: 'IM Fell English', serif; font-size: 14px; line-height: 1.2; margin-bottom: 3px; }
+.voice-card.active .voice-archetype { color: var(--active-voice); }
+.voice-flavor { font-size: 11px; font-style: italic; color: var(--ink3); line-height: 1.4; }
+.voice-tag { display: inline-block; margin-top: 6px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); opacity: 0.7; }
+
+/* ── Speed ── */
+.speed-section { margin-top: 2rem; }
+.speed-row { display: flex; align-items: center; gap: 16px; margin-top: 10px; }
+.speed-display { font-family: 'IM Fell English', serif; font-size: 28px; min-width: 60px; line-height: 1; }
+.speed-display span { font-size: 14px; color: var(--ink3); }
+.speed-right { flex: 1; }
+input[type=range] { width: 100%; margin-bottom: 10px; accent-color: var(--gold); }
+.pace-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.pace-btn { padding: 3px 11px; border: 0.5px solid var(--rule); border-radius: 2px; background: transparent; font-family: 'Crimson Pro', serif; font-style: italic; font-size: 13px; color: var(--ink3); cursor: pointer; transition: all 0.12s; }
+.pace-btn:hover { border-color: var(--gold); color: var(--ink); }
+.pace-btn.active { border-color: var(--gold); color: var(--active-voice); background: var(--parchment3); }
+
+/* ── Controls ── */
+.controls-section { margin-top: 2rem; }
+.scrubber-wrap { position: relative; margin-bottom: 18px; padding: 10px 0; cursor: pointer; user-select: none; }
+.scrubber-track { height: 3px; background: var(--rule); border-radius: 2px; position: relative; }
+.scrubber-fill { height: 100%; background: var(--gold); border-radius: 2px; width: 0%; pointer-events: none; }
+.scrubber-thumb { position: absolute; top: 50%; left: 0%; transform: translate(-50%,-50%); width: 13px; height: 13px; border-radius: 50%; background: var(--gold); border: 2px solid var(--parchment); box-shadow: 0 0 0 1px var(--gold); pointer-events: none; opacity: 0; transition: opacity 0.15s, transform 0.1s; }
+.scrubber-wrap:hover .scrubber-thumb, .scrubber-wrap.dragging .scrubber-thumb { opacity: 1; }
+.scrubber-wrap.dragging .scrubber-thumb { transform: translate(-50%,-50%) scale(1.2); }
+.scrubber-tooltip { position: absolute; top: -26px; transform: translateX(-50%); background: var(--ink); color: var(--parchment); font-size: 11px; font-style: italic; padding: 3px 8px; border-radius: 3px; pointer-events: none; opacity: 0; white-space: nowrap; transition: opacity 0.1s; }
+.scrubber-wrap:hover .scrubber-tooltip, .scrubber-wrap.dragging .scrubber-tooltip { opacity: 1; }
+.progress-label { font-size: 12px; color: var(--ink3); font-style: italic; display: flex; justify-content: space-between; margin-top: 2px; }
+.control-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.btn-play { display: flex; align-items: center; gap: 10px; padding: 10px 22px; background: var(--ink); color: var(--parchment); border: none; border-radius: 3px; font-family: 'IM Fell English', serif; font-size: 15px; cursor: pointer; transition: opacity 0.15s; letter-spacing: 0.04em; }
+.btn-play:hover { opacity: 0.82; }
+.btn-play:active { transform: scale(0.98); }
+.btn-secondary { padding: 10px 18px; background: transparent; color: var(--ink3); border: 0.5px solid var(--rule); border-radius: 3px; font-family: 'Crimson Pro', serif; font-style: italic; font-size: 14px; cursor: pointer; transition: all 0.15s; }
+.btn-secondary:hover { border-color: var(--gold); color: var(--ink); }
+.btn-record-mode { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: transparent; color: var(--gold); border: 0.5px solid var(--gold); border-radius: 3px; font-family: 'Crimson Pro', serif; font-style: italic; font-size: 14px; cursor: pointer; transition: all 0.15s; }
+.btn-record-mode:hover { background: var(--parchment3); }
+.narrating-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; font-style: italic; color: var(--ink3); margin-left: auto; }
+.pulse-dot { width: 7px; height: 7px; border-radius: 50%; opacity: 0; transition: opacity 0.2s; }
+.pulse-dot.active { opacity: 1; background: #6b9e5e; animation: breathe 1.6s ease-in-out infinite; }
+.pulse-dot.paused { opacity: 1; background: var(--gold); animation: none; }
+@keyframes breathe { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+.footer-flourish { text-align: center; margin-top: 3rem; color: var(--ink3); font-size: 20px; opacity: 0.3; letter-spacing: 0.3em; }
+
+/* ── Wake lock toggle ── */
+.wake-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.wake-toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.wake-toggle input { opacity: 0; width: 0; height: 0; }
+.wake-slider { position: absolute; inset: 0; background: var(--rule); border-radius: 20px; cursor: pointer; transition: background 0.2s; border: 0.5px solid var(--rule); }
+.wake-slider::before { content: ''; position: absolute; width: 14px; height: 14px; left: 2px; top: 2px; background: var(--parchment); border-radius: 50%; transition: transform 0.2s; }
+.wake-toggle input:checked + .wake-slider { background: var(--gold); }
+.wake-toggle input:checked + .wake-slider::before { transform: translateX(16px); }
+.wake-label { font-size: 13px; font-style: italic; color: var(--ink3); }
+.wake-label strong { font-style: normal; color: var(--ink); font-weight: 400; }
+
+/* ── Recording Modal ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; align-items: center; justify-content: center; padding: 2rem; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--parchment); border: 0.5px solid var(--rule); border-radius: 6px; max-width: 540px; width: 100%; padding: 2rem 2rem 1.5rem; }
+.modal-title { font-family: 'IM Fell English', serif; font-size: 20px; margin-bottom: 0.5rem; }
+.modal-sub { font-size: 13px; font-style: italic; color: var(--ink3); margin-bottom: 1.5rem; }
+.os-tabs { display: flex; margin-bottom: 1.25rem; border-bottom: 0.5px solid var(--rule); }
+.os-tab { padding: 7px 18px; font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--ink3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -0.5px; transition: all 0.12s; background: transparent; border-top: none; border-left: none; border-right: none; }
+.os-tab:hover { color: var(--ink); }
+.os-tab.active { color: var(--active-voice); border-bottom-color: var(--gold); }
+.os-panel { display: none; }
+.os-panel.active { display: block; }
+.steps { list-style: none; counter-reset: steps; }
+.steps li { counter-increment: steps; display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; font-size: 14px; line-height: 1.6; }
+.steps li::before { content: counter(steps); display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; min-width: 22px; border-radius: 50%; background: var(--parchment3); border: 0.5px solid var(--rule); font-size: 11px; color: var(--ink3); margin-top: 2px; }
+.steps li kbd { display: inline-block; padding: 1px 7px; background: var(--parchment3); border: 0.5px solid var(--rule); border-radius: 3px; font-family: monospace; font-size: 12px; font-style: normal; }
+.modal-note { margin-top: 1rem; font-size: 12px; font-style: italic; color: var(--ink3); padding-top: 1rem; border-top: 0.5px solid var(--rule); line-height: 1.6; }
+.modal-actions { display: flex; gap: 10px; margin-top: 1.5rem; flex-wrap: wrap; }
+.btn-launch { flex: 1; padding: 11px 20px; background: var(--ink); color: var(--parchment); border: none; border-radius: 3px; font-family: 'IM Fell English', serif; font-size: 15px; cursor: pointer; transition: opacity 0.15s; }
+.btn-launch:hover { opacity: 0.82; }
+.btn-close-modal { padding: 11px 18px; background: transparent; color: var(--ink3); border: 0.5px solid var(--rule); border-radius: 3px; font-family: 'Crimson Pro', serif; font-style: italic; font-size: 14px; cursor: pointer; transition: all 0.15s; }
+.btn-close-modal:hover { border-color: var(--gold); color: var(--ink); }
+
+/* ── Narration View ── */
+#narration-view { display: none; position: fixed; inset: 0; background: var(--parchment); z-index: 200; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 2rem; }
+#narration-view.open { display: flex; }
+.nv-title { font-family: 'IM Fell English', serif; font-size: 13px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink3); margin-bottom: 3rem; opacity: 0.6; }
+.nv-voice { font-family: 'IM Fell English', serif; font-size: 32px; color: var(--ink); margin-bottom: 0.5rem; text-align: center; }
+.nv-flavor { font-style: italic; font-size: 16px; color: var(--ink3); margin-bottom: 3rem; text-align: center; }
+.nv-progress-wrap { width: 100%; max-width: 480px; margin-bottom: 2.5rem; }
+.nv-progress-bar { height: 2px; background: var(--rule); border-radius: 1px; overflow: hidden; margin-bottom: 8px; }
+.nv-progress-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.3s linear; }
+.nv-time { display: flex; justify-content: space-between; font-size: 13px; font-style: italic; color: var(--ink3); }
+.nv-badge { display: flex; align-items: center; gap: 10px; margin-bottom: 3rem; font-size: 15px; font-style: italic; color: var(--ink3); }
+.nv-dot { width: 8px; height: 8px; border-radius: 50%; background: #6b9e5e; animation: breathe 1.6s ease-in-out infinite; }
+.nv-dot.paused { background: var(--gold); animation: none; }
+.nv-controls { display: flex; gap: 12px; }
+.nv-btn { padding: 10px 24px; background: transparent; color: var(--ink3); border: 0.5px solid var(--rule); border-radius: 3px; font-family: 'Crimson Pro', serif; font-style: italic; font-size: 14px; cursor: pointer; transition: all 0.15s; }
+.nv-btn:hover { border-color: var(--gold); color: var(--ink); }
+.nv-btn.primary { background: var(--ink); color: var(--parchment); border-color: var(--ink); font-family: 'IM Fell English', serif; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.nv-btn.primary:hover { opacity: 0.82; }
+.nv-rec-hint { margin-top: 3rem; font-size: 12px; font-style: italic; color: var(--ink3); opacity: 0.6; text-align: center; max-width: 360px; line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<div id="main-app">
+  <div class="book-header">
+    <div class="book-title">The Narrator</div>
+    <div class="book-subtitle">Shadow Slave · web novel reader</div>
+    <div class="rule-ornament"><div class="rule-line"></div><div class="rule-diamond"></div><div class="rule-line"></div></div>
+  </div>
+
+  <div class="body">
+
+    <!-- ── Scraper ── -->
+    <div class="scraper-section">
+      <div class="scraper-title">Fetch chapters</div>
+      <div class="scraper-sub">Fetches 10 chapters at a time from lightnovelworld.org.</div>
+
+      <div class="chapter-selector">
+        <div class="chapter-selector-label">Chapter range</div>
+        <div class="chapter-selector-row">
+          <button class="arrow-btn" id="ch-prev">&#8592;</button>
+          <div class="chapter-range-display" id="ch-range-display">
+            <span id="ch-range-label">1041 – 1050</span>
+          </div>
+          <button class="arrow-btn" id="ch-next">&#8594;</button>
+        </div>
+        <div class="jump-row">
+          <span class="jump-label">Jump</span>
+          <button class="jump-btn" data-delta="-100">&#8722;100</button>
+          <button class="jump-btn" data-delta="-50">&#8722;50</button>
+          <button class="jump-btn" data-delta="-10">&#8722;10</button>
+          <button class="jump-btn" data-delta="10">+10</button>
+          <button class="jump-btn" data-delta="50">+50</button>
+          <button class="jump-btn" data-delta="100">+100</button>
+        </div>
+      </div>
+
+      <div class="scraper-row" style="margin-top:14px;">
+        <button class="btn-fetch" id="btn-fetch">
+          <div class="fetch-spinner"></div>
+          <span class="fetch-label">Fetch chapters</span>
+        </button>
+        <button class="btn-secondary" id="btn-abort" style="display:none;">Cancel</button>
+      </div>
+
+      <div class="fetch-progress" id="fetch-progress">
+        <div class="fetch-progress-bar"><div class="fetch-progress-fill" id="fetch-progress-fill"></div></div>
+      </div>
+      <div class="fetch-status" id="fetch-status"></div>
+
+      <div style="margin-top:14px;border-top:0.5px solid var(--rule);padding-top:14px;">
+        <div class="chapter-selector-label" style="margin-bottom:8px;">Sync progress</div>
+        <div class="sync-row">
+          <button class="btn-sync" id="btn-sync-save">&#8593; Save position</button>
+          <button class="btn-sync" id="btn-sync-load">&#8595; Load position</button>
+        </div>
+        <div class="sync-status" id="sync-status"></div>
+      </div>
+    </div>
+
+    <!-- ── Chapter Text ── -->
+    <div class="chapter-section">
+      <span class="section-label">Chapter text</span>
+      <textarea id="text-input" placeholder="Fetched chapters will appear here — or paste manually…"></textarea>
+      <div class="meta-row"><span id="word-count">—</span><span id="char-count">—</span></div>
+    </div>
+
+    <!-- ── Voices ── -->
+    <div class="voices-section">
+      <span class="section-label">Choose your narrator</span>
+      <div class="voices-grid" id="voice-grid"><div style="font-size:13px;font-style:italic;color:var(--ink3);padding:8px 0;">Summoning voices…</div></div>
+    </div>
+
+    <!-- ── Speed ── -->
+    <div class="speed-section">
+      <span class="section-label">Pace of narration</span>
+      <div class="speed-row">
+        <div class="speed-display" id="speed-display">1.0<span>×</span></div>
+        <div class="speed-right">
+          <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.05" value="1.0">
+          <div class="pace-presets">
+            <button class="pace-btn" data-speed="0.7">unhurried</button>
+            <button class="pace-btn active" data-speed="1.0">natural</button>
+            <button class="pace-btn" data-speed="1.3">brisk</button>
+            <button class="pace-btn" data-speed="1.6">swift</button>
+            <button class="pace-btn" data-speed="2.0">fleet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Playback ── -->
+    <div class="controls-section">
+      <div class="scrubber-wrap" id="scrubber-wrap">
+        <div class="scrubber-track" id="scrubber-track">
+          <div class="scrubber-fill" id="scrubber-fill"></div>
+          <div class="scrubber-thumb" id="scrubber-thumb"></div>
+        </div>
+        <div class="scrubber-tooltip" id="scrubber-tooltip">0s</div>
+      </div>
+      <div class="progress-label"><span id="time-left">—</span><span id="time-total">—</span></div>
+      <div class="control-row">
+        <button class="btn-play" id="play-btn">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path id="play-path" d="M3 2L12 7L3 12Z" fill="currentColor"/></svg>
+          <span id="play-label">Begin reading</span>
+        </button>
+        <button class="btn-secondary" id="stop-btn">Close book</button>
+        <button class="btn-record-mode" id="open-rec-modal">⬤ Record to file</button>
+        <button class="btn-record-mode" id="btn-pip" style="display:none;">⧉ Float player</button>
+        <div class="narrating-badge"><div class="pulse-dot" id="pulse-dot"></div><span id="status-text">at rest</span></div>
+      </div>
+      <div class="wake-row">
+        <label class="wake-toggle">
+          <input type="checkbox" id="wake-lock-toggle">
+          <span class="wake-slider"></span>
+        </label>
+        <span class="wake-label" id="wake-label">Keep screen on while narrating</span>
+      </div>
+    </div>
+
+    <div class="footer-flourish">✦ ✦ ✦</div>
+  </div>
+</div>
+
+<!-- Recording Modal -->
+<div class="modal-overlay" id="rec-modal">
+  <div class="modal">
+    <div class="modal-title">Record narration to file</div>
+    <div class="modal-sub">Use your OS audio recorder — no extra software needed.</div>
+    <div class="os-tabs">
+      <button class="os-tab active" data-os="mac">macOS</button>
+      <button class="os-tab" data-os="win">Windows</button>
+      <button class="os-tab" data-os="linux">Linux</button>
+    </div>
+    <div class="os-panel active" id="panel-mac">
+      <ol class="steps">
+        <li>Open <strong>QuickTime Player</strong> → <strong>File → New Audio Recording</strong>.</li>
+        <li>Click the arrow next to record → set input to system output. <em>BlackHole</em> (free, existential.audio) gives clean loopback with no mic bleed.</li>
+        <li>Press record in QuickTime, then click <strong>Open narration view & play</strong> below.</li>
+        <li>When narration ends, stop QuickTime and save as M4A or convert to MP3 via VLC.</li>
+      </ol>
+      <div class="modal-note">No BlackHole? Hold your phone near the speaker and use Voice Memos.</div>
+    </div>
+    <div class="os-panel" id="panel-win">
+      <ol class="steps">
+        <li>Press <kbd>Win</kbd>+<kbd>G</kbd> → Xbox Game Bar → <strong>⬤ Start recording</strong> (or <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd>).</li>
+        <li>Click <strong>Open narration view & play</strong> below.</li>
+        <li>Press <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd> when done. File saves to <em>Videos\Captures</em>. Extract audio with VLC → Media → Convert.</li>
+      </ol>
+      <div class="modal-note">Better option: Audacity → WASAPI loopback → exports directly to MP3.</div>
+    </div>
+    <div class="os-panel" id="panel-linux">
+      <ol class="steps">
+        <li>Open <strong>Audacity</strong> → set recording device to <em>Monitor of [output]</em> (PulseAudio).</li>
+        <li>Press Record, then click <strong>Open narration view & play</strong> below.</li>
+        <li>When done, stop Audacity and export as MP3 or OGG.</li>
+      </ol>
+      <div class="modal-note">CLI: <kbd>parecord --monitor-stream=0 output.wav</kbd></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-launch" id="launch-narration-view">Open narration view &amp; play</button>
+      <button class="btn-close-modal" id="close-rec-modal">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Narration View -->
+<div id="narration-view">
+  <div class="nv-title">Now narrating</div>
+  <div class="nv-voice" id="nv-voice-name">The Herald</div>
+  <div class="nv-flavor" id="nv-voice-flavor">clear &amp; commanding</div>
+  <div class="nv-progress-wrap">
+    <div class="nv-progress-bar"><div class="nv-progress-fill" id="nv-progress-fill"></div></div>
+    <div class="nv-time"><span id="nv-time-left">—</span><span id="nv-time-total">—</span></div>
+  </div>
+  <div class="nv-badge"><div class="nv-dot" id="nv-dot"></div><span id="nv-status">narrating…</span></div>
+  <div class="nv-controls">
+    <button class="nv-btn primary" id="nv-play-btn">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path id="nv-play-path" d="M3 2h3v10H3V2zm5 0h3v10H8V2z" fill="currentColor"/></svg>
+      <span id="nv-play-label">Pause</span>
+    </button>
+    <button class="nv-btn" id="nv-stop-btn">Stop &amp; exit</button>
+  </div>
+  <div class="nv-rec-hint">Your OS recorder is capturing this view.<br>Stop your recorder when narration finishes, then save.</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  SCRAPER  (JS port of the Python scraper)
+//  Uses fetch() + DOMParser to extract text.
+//  CORS proxy is required for most browsers
+//  when opening as a local file.
+// ═══════════════════════════════════════════
+
+const BASE_URL = 'https://lightnovelworld.org/novel/shadow-slave/chapter/{}/';
+const PROXY   = 'https://corsproxy.io/?key=3e5af5d4&url=';
+const SELECTORS = [
+  'div.chapter-content',
+  'div#chapter-content',
+  'div.text-left',
+  'div.fr-view',
+];
+const REMOVE_TAGS = ['script', 'style', 'ins', 'iframe'];
+
+let isCancelled = false;
+
+// Chapter window — persisted in localStorage so it survives page reloads
+const STORAGE_KEY = 'narrator_chapter_start';
+let chapterWindowStart = parseInt(localStorage.getItem(STORAGE_KEY)) || 1041;
+
+function getChapterEnd() { return chapterWindowStart + 9; }
+
+function updateRangeLabel() {
+  document.getElementById('ch-range-label').textContent =
+    chapterWindowStart + ' – ' + getChapterEnd();
+}
+
+function shiftWindow(delta) {
+  chapterWindowStart = Math.max(1, chapterWindowStart + delta);
+  localStorage.setItem(STORAGE_KEY, chapterWindowStart);
+  updateRangeLabel();
+  autoSyncToSheets();
+  // Stop playback and clear text when navigating to a new range
+  if (delta !== 0) {
+    synth.cancel();
+    isActive = false; isPaused = false;
+    clearInterval(progressInterval);
+    currentWordIndex = 0; chunkStartTime = null;
+    updateScrubberUI(0);
+    document.getElementById('time-left').textContent = '—';
+    document.getElementById('time-total').textContent = '—';
+    document.getElementById('text-input').value = '';
+    updateMeta();
+    setStatus('idle');
+  }
+}
+
+// Google Apps Script blocks CORS from file:// (origin: null).
+// Save uses no-cors (fire-and-forget — we can't read the response but it works).
+// Load uses a JSONP trick to get the response back without CORS.
+function autoSyncToSheets() {
+  fetch(getSyncUrl() + '?action=save&chapter=' + chapterWindowStart, {
+    method: 'get',
+    mode: 'no-cors',
+  })
+  .then(() => setSyncStatus('✓ Synced — chapter ' + chapterWindowStart, 'ok'))
+  .catch(() => setSyncStatus('Sync failed — check connection', 'err'));
+}
+
+// Initialise label from saved value on load
+updateRangeLabel();
+
+document.getElementById('ch-prev').addEventListener('click', () => shiftWindow(-10));
+document.getElementById('ch-next').addEventListener('click', () => shiftWindow(10));
+document.querySelectorAll('.jump-btn').forEach(btn => {
+  btn.addEventListener('click', () => shiftWindow(parseInt(btn.dataset.delta)));
+});
+
+function buildUrl(chapterNum) {
+  return PROXY + BASE_URL.replace('{}', chapterNum);
+}
+
+async function fetchChapterText(chapterNum) {
+  const url = buildUrl(chapterNum);
+  // No AbortSignal passed — avoids the postMessage/clone bug in some browsers
+  const res = await fetch(url, {
+    headers: { 'Accept': 'text/html' },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const html = await res.text();
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  let contentDiv = null;
+  for (const sel of SELECTORS) {
+    contentDiv = doc.querySelector(sel);
+    if (contentDiv) break;
+  }
+  if (!contentDiv) throw new Error('content div not found');
+
+  REMOVE_TAGS.forEach(tag => {
+    contentDiv.querySelectorAll(tag).forEach(el => el.remove());
+  });
+
+  const paragraphs = [...contentDiv.querySelectorAll('p')]
+    .map(p => p.textContent.trim())
+    .filter(Boolean);
+
+  if (!paragraphs.length) throw new Error('no paragraphs found');
+
+  return paragraphs.join('\n\n');
+}
+
+async function scrapeRange(start, end) {
+  const btn      = document.getElementById('btn-fetch');
+  const abortBtn = document.getElementById('btn-abort');
+  const statusEl = document.getElementById('fetch-status');
+  const progWrap = document.getElementById('fetch-progress');
+  const progFill = document.getElementById('fetch-progress-fill');
+  const textArea = document.getElementById('text-input');
+
+  isCancelled = false;
+  btn.disabled = true;
+  btn.classList.add('loading');
+  abortBtn.style.display = 'inline-flex';
+  progWrap.style.display = 'block';
+  progFill.style.width = '0%';
+
+  const total = end - start + 1;
+  const results = [];
+  const errors  = [];
+
+  for (let ch = start; ch <= end; ch++) {
+    if (isCancelled) break;
+
+    const pct = ((ch - start) / total * 100).toFixed(0);
+    progFill.style.width = pct + '%';
+    statusEl.className = 'fetch-status';
+    statusEl.textContent = `Fetching chapter ${ch}… (${ch - start + 1} of ${total})`;
+
+    try {
+      const text = await fetchChapterText(ch);
+      results.push({ chapter: ch, text });
+    } catch (e) {
+      errors.push(`Chapter ${ch}: ${e.message}`);
+      console.warn(`[!] Chapter ${ch}:`, e.message);
+    }
+
+    // 1 second delay between chapters (mirrors Python's time.sleep(1))
+    if (ch < end && !isCancelled) {
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
+
+  progFill.style.width = '100%';
+  btn.disabled = false;
+  btn.classList.remove('loading');
+  abortBtn.style.display = 'none';
+
+  if (results.length) {
+    const combined = results
+      .map(r => `— Chapter ${r.chapter} —\n\n${r.text}`)
+      .join('\n\n');
+
+    // Always replace — we only want the current 10 chapters in view
+    textArea.value = combined;
+    updateMeta();
+
+    statusEl.className = 'fetch-status success';
+    let msg = `✓ Fetched ${results.length} chapter${results.length !== 1 ? 's' : ''}.`;
+    if (errors.length) msg += ` ${errors.length} skipped — check console for details.`;
+    if (isCancelled) msg += ' (cancelled)';
+    statusEl.textContent = msg;
+  } else {
+    statusEl.className = 'fetch-status error';
+    statusEl.textContent = isCancelled
+      ? 'Fetch cancelled.'
+      : 'No chapters fetched. ' + (errors[0] || '') + ' — Check your proxy URL and try again.';
+  }
+}
+
+document.getElementById('btn-fetch').addEventListener('click', () => {
+  scrapeRange(chapterWindowStart, getChapterEnd());
+});
+
+document.getElementById('btn-abort').addEventListener('click', () => {
+  isCancelled = true;
+});
+
+// ═══════════════════════════════════════════
+//  GOOGLE SHEETS SYNC
+// ═══════════════════════════════════════════
+const SYNC_URL = 'https://script.google.com/macros/s/AKfycbwN7jpGugpDFh_24E0rB8NB7SQxcgt4q4wud7mFNWQme4ZWV76UbG1a167Nptz81E1f/exec';
+
+function getSyncUrl() { return SYNC_URL; }
+
+function setSyncStatus(msg, type) {
+  const el = document.getElementById('sync-status');
+  el.textContent = msg;
+  el.className = 'sync-status' + (type ? ' ' + type : '');
+}
+
+document.getElementById('btn-sync-save').addEventListener('click', async () => {
+  const url = getSyncUrl();
+  if (!url) { setSyncStatus('Paste your Apps Script URL first.', 'err'); return; }
+  const btn = document.getElementById('btn-sync-save');
+  btn.classList.add('syncing'); btn.textContent = 'Saving…';
+  setSyncStatus('');
+  try {
+    const res = await fetch(url + '?action=save&chapter=' + chapterWindowStart);
+    const data = await res.json();
+    if (data.ok) setSyncStatus('✓ Position saved — chapter ' + chapterWindowStart, 'ok');
+    else throw new Error(data.error || 'Unknown error');
+  } catch(e) {
+    setSyncStatus('Error: ' + e.message, 'err');
+  } finally {
+    btn.classList.remove('syncing'); btn.textContent = 'Save position';
+  }
+});
+
+document.getElementById('btn-sync-load').addEventListener('click', () => {
+  const url = getSyncUrl();
+  const btn = document.getElementById('btn-sync-load');
+  btn.classList.add('syncing'); btn.textContent = 'Loading…';
+  setSyncStatus('');
+
+  // JSONP — inject a <script> tag so the response isn't blocked by CORS
+  const cbName = 'narratorSyncCb_' + Date.now();
+  const script = document.createElement('script');
+
+  window[cbName] = (data) => {
+    delete window[cbName];
+    script.remove();
+    btn.classList.remove('syncing'); btn.textContent = 'Load position';
+    if (data.ok && data.chapter) {
+      chapterWindowStart = parseInt(data.chapter);
+      localStorage.setItem(STORAGE_KEY, chapterWindowStart);
+      updateRangeLabel();
+      setSyncStatus('✓ Loaded — chapter ' + chapterWindowStart, 'ok');
+    } else {
+      setSyncStatus('Error: ' + (data.error || 'No chapter saved yet'), 'err');
+    }
+  };
+
+  script.onerror = () => {
+    delete window[cbName];
+    script.remove();
+    btn.classList.remove('syncing'); btn.textContent = 'Load position';
+    setSyncStatus('Load failed — check connection', 'err');
+  };
+
+  script.src = url + '?action=load&callback=' + cbName;
+  document.head.appendChild(script);
+});
+
+// ═══════════════════════════════════════════
+//  VOICES
+// ═══════════════════════════════════════════
+const synth = window.speechSynthesis;
+const ARCHETYPES = [
+  { id:'elder',      name:'The Elder',      flavor:'weathered & wise',       tags:'gravitas',  pitch:0.88, rateAdj:0.95 },
+  { id:'herald',     name:'The Herald',     flavor:'clear & commanding',     tags:'authority', pitch:0.95, rateAdj:1.0  },
+  { id:'scholar',    name:'The Scholar',    flavor:'measured & precise',     tags:'clarity',   pitch:1.0,  rateAdj:0.98 },
+  { id:'wanderer',   name:'The Wanderer',   flavor:'warm & unhurried',       tags:'warmth',    pitch:0.92, rateAdj:0.93 },
+  { id:'rogue',      name:'The Rogue',      flavor:'wry & quick',            tags:'wit',       pitch:1.05, rateAdj:1.05 },
+  { id:'knight',     name:'The Knight',     flavor:'noble & resolute',       tags:'honor',     pitch:0.9,  rateAdj:0.97 },
+  { id:'seer',       name:'The Seer',       flavor:'quiet & otherworldly',   tags:'mystery',   pitch:0.85, rateAdj:0.9  },
+  { id:'chronicler', name:'The Chronicler', flavor:'formal & authoritative', tags:'history',   pitch:0.97, rateAdj:1.0  },
+];
+
+let voicePool = [], selectedArchetype = ARCHETYPES[1];
+const maleKw = ['male','man','david','james','alex','ryan','paul','john','peter','george','daniel','oliver','william','henry','richard','mark','thomas','fred','eric','zarvox','ralph','bruce','reed'];
+function scoreMale(n){n=n.toLowerCase();if(['david','james','alex','google uk english male','microsoft david','fred','daniel','ralph','reed'].some(k=>n.includes(k)))return 10;if(maleKw.some(k=>n.includes(k)))return 5;return 1;}
+function pickVoice(arch){if(!voicePool.length)return null;return voicePool[ARCHETYPES.indexOf(arch)%voicePool.length];}
+function loadVoices(){
+  let all=synth.getVoices(),eng=all.filter(v=>v.lang.startsWith('en'));
+  let male=eng.filter(v=>maleKw.some(k=>v.name.toLowerCase().includes(k)));
+  if(!male.length)male=eng; male.sort((a,b)=>scoreMale(b.name)-scoreMale(a.name));
+  const seen=new Set();
+  voicePool=[...male,...eng].filter(v=>{if(seen.has(v.name))return false;seen.add(v.name);return true;}).slice(0,8);
+  renderVoiceGrid();
+}
+synth.onvoiceschanged=loadVoices; loadVoices();
+
+function renderVoiceGrid(){
+  const grid=document.getElementById('voice-grid'); grid.innerHTML='';
+  ARCHETYPES.forEach(arch=>{
+    const card=document.createElement('button');
+    card.className='voice-card'+(arch.id===selectedArchetype.id?' active':'');
+    card.innerHTML=`<div class="voice-archetype">${arch.name}</div><div class="voice-flavor">${arch.flavor}</div><div class="voice-tag">${arch.tags}</div>`;
+    card.addEventListener('click',()=>{
+      document.querySelectorAll('.voice-card').forEach(c=>c.classList.remove('active'));
+      card.classList.add('active'); selectedArchetype=arch;
+      document.getElementById('nv-voice-name').textContent=arch.name;
+      document.getElementById('nv-voice-flavor').textContent=arch.flavor;
+      if(isActive||isPaused){synth.cancel();isPaused=false;continueFromWord(currentWordIndex);setStatus('speaking');}
+    });
+    grid.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════
+//  TEXT / SPEED
+// ═══════════════════════════════════════════
+const textInput=document.getElementById('text-input');
+function updateMeta(){
+  const t=textInput.value,w=t.trim()?t.trim().split(/\s+/).length:0;
+  document.getElementById('word-count').textContent=w.toLocaleString()+' words';
+  document.getElementById('char-count').textContent=t.length.toLocaleString()+' characters';
+}
+textInput.addEventListener('input',updateMeta);
+
+const speedSlider=document.getElementById('speed-slider');
+speedSlider.addEventListener('input',()=>{
+  const v=parseFloat(speedSlider.value);
+  document.getElementById('speed-display').innerHTML=v.toFixed(2).replace(/\.?0+$/,'')+' <span>×</span>';
+  updatePaceActive(v);
+  if(isActive||isPaused){synth.cancel();isPaused=false;continueFromWord(currentWordIndex);setStatus('speaking');}
+});
+document.querySelectorAll('.pace-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    speedSlider.value=btn.dataset.speed;
+    document.getElementById('speed-display').innerHTML=parseFloat(btn.dataset.speed).toFixed(1)+' <span>×</span>';
+    updatePaceActive(parseFloat(btn.dataset.speed));
+    if(isActive||isPaused){synth.cancel();isPaused=false;continueFromWord(currentWordIndex);setStatus('speaking');}
+  });
+});
+function updatePaceActive(val){document.querySelectorAll('.pace-btn').forEach(b=>b.classList.toggle('active',Math.abs(parseFloat(b.dataset.speed)-val)<0.09));}
+
+// ═══════════════════════════════════════════
+//  WAKE LOCK
+// ═══════════════════════════════════════════
+let wakeLock = null;
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) {
+    document.getElementById('wake-label').innerHTML =
+      '<span style="color:var(--ink3)">Screen wake lock not supported in this browser</span>';
+    document.getElementById('wake-lock-toggle').disabled = true;
+    return;
+  }
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    document.getElementById('wake-label').innerHTML =
+      'Screen will <strong>stay on</strong> while narrating';
+    // Re-acquire if released (e.g. tab goes background briefly)
+    wakeLock.addEventListener('release', () => {
+      if (document.getElementById('wake-lock-toggle').checked) {
+        requestWakeLock();
+      }
+    });
+  } catch (e) {
+    document.getElementById('wake-label').textContent = 'Could not acquire wake lock: ' + e.message;
+  }
+}
+
+async function releaseWakeLock() {
+  if (wakeLock) {
+    await wakeLock.release();
+    wakeLock = null;
+  }
+  document.getElementById('wake-label').textContent = 'Keep screen on while narrating';
+}
+
+document.getElementById('wake-lock-toggle').addEventListener('change', (e) => {
+  if (e.target.checked) requestWakeLock();
+  else releaseWakeLock();
+});
+
+// Auto-acquire when playback starts, release when stopped
+// (only if toggle is on)
+function maybeAcquireWakeLock() {
+  if (document.getElementById('wake-lock-toggle').checked && !wakeLock) {
+    requestWakeLock();
+  }
+}
+function maybeReleaseWakeLock() {
+  if (!document.getElementById('wake-lock-toggle').checked) return;
+  releaseWakeLock();
+  // Uncheck toggle so user knows it released
+  document.getElementById('wake-lock-toggle').checked = false;
+  document.getElementById('wake-label').textContent = 'Keep screen on while narrating';
+}
+
+// ═══════════════════════════════════════════
+//  SCRUBBER
+// ═══════════════════════════════════════════
+const scrubWrap=document.getElementById('scrubber-wrap'),scrubTrack=document.getElementById('scrubber-track');
+const scrubFill=document.getElementById('scrubber-fill'),scrubThumb=document.getElementById('scrubber-thumb'),scrubTip=document.getElementById('scrubber-tooltip');
+function getPct(e){const rect=scrubTrack.getBoundingClientRect(),cx=e.touches?e.touches[0].clientX:e.clientX;return Math.max(0,Math.min(1,(cx-rect.left)/rect.width));}
+function updateScrubberUI(pct){
+  const p=(pct*100).toFixed(2)+'%';scrubFill.style.width=p;scrubThumb.style.left=p;
+  const rate=parseFloat(speedSlider.value)*selectedArchetype.rateAdj;
+  scrubTip.textContent=fmt(pct*estimateDuration(allWords.length,rate));scrubTip.style.left=p;
+  document.getElementById('nv-progress-fill').style.width=p;
+}
+function onScrubStart(e){if(!allWords.length)return;e.preventDefault();isScrubbing=true;scrubWrap.classList.add('dragging');clearInterval(progressInterval);if(isActive){synth.cancel();isActive=false;}const pct=getPct(e);scrubTargetWord=Math.floor(pct*allWords.length);updateScrubberUI(pct);}
+function onScrubMove(e){if(!isScrubbing)return;e.preventDefault();const pct=getPct(e);scrubTargetWord=Math.floor(pct*allWords.length);updateScrubberUI(pct);}
+function onScrubEnd(e){if(!isScrubbing)return;isScrubbing=false;scrubWrap.classList.remove('dragging');currentWordIndex=Math.min(scrubTargetWord,allWords.length-1);if(!isPaused){continueFromWord(currentWordIndex);setStatus('speaking');}else{updateScrubberUI(currentWordIndex/allWords.length);}}
+scrubTrack.addEventListener('mousemove',e=>{if(isScrubbing||!allWords.length)return;const pct=getPct(e),rate=parseFloat(speedSlider.value)*selectedArchetype.rateAdj;scrubTip.textContent=fmt(pct*estimateDuration(allWords.length,rate));scrubTip.style.left=(pct*100).toFixed(2)+'%';scrubThumb.style.left=(pct*100).toFixed(2)+'%';});
+scrubWrap.addEventListener('mousedown',onScrubStart);scrubWrap.addEventListener('touchstart',onScrubStart,{passive:false});
+window.addEventListener('mousemove',onScrubMove);window.addEventListener('touchmove',onScrubMove,{passive:false});
+window.addEventListener('mouseup',onScrubEnd);window.addEventListener('touchend',onScrubEnd);
+
+// ═══════════════════════════════════════════
+//  PLAYBACK ENGINE
+// ═══════════════════════════════════════════
+let isActive=false,isPaused=false;
+let allWords=[],currentWordIndex=0;
+let currentChunkWordCount=0,chunkStartWordIndex=0;
+let chunkStartTime=null,chunkDuration=0;
+let progressInterval=null;
+let isScrubbing=false,scrubTargetWord=0;
+
+function estimateDuration(wc,rate){return(wc/(150*rate))*60;}
+function fmt(s){const m=Math.floor(s/60),sec=Math.floor(s%60);return(m>0?m+'m ':'')+sec+'s';}
+
+function startProgressTicker(){
+  clearInterval(progressInterval);
+  progressInterval=setInterval(()=>{
+    if(isScrubbing||!chunkStartTime)return;
+    const el=(Date.now()-chunkStartTime)/1000;
+    const wi=Math.min(Math.floor((el/Math.max(chunkDuration,0.01))*currentChunkWordCount),currentChunkWordCount);
+    const ws=chunkStartWordIndex+wi;currentWordIndex=ws;
+    const pct=allWords.length?ws/allWords.length:0;
+    updateScrubberUI(Math.min(pct,1));
+    const rate=parseFloat(speedSlider.value)*selectedArchetype.rateAdj;
+    const rem=fmt(Math.max(0,estimateDuration(allWords.length,rate)*(1-pct)))+' remaining';
+    document.getElementById('time-left').textContent=rem;
+    document.getElementById('nv-time-left').textContent=rem;
+  },200);
+}
+
+function continueFromWord(fromIndex){
+  synth.cancel();
+  if(!allWords.length||fromIndex>=allWords.length){finishPlayback();return;}
+  const arch=selectedArchetype,rate=parseFloat(speedSlider.value)*arch.rateAdj;
+  const CHUNK=200,cw=allWords.slice(fromIndex,fromIndex+CHUNK);
+  currentChunkWordCount=cw.length;chunkStartWordIndex=fromIndex;
+  const utt=new SpeechSynthesisUtterance(cw.join(' '));
+  const voice=pickVoice(arch);if(voice)utt.voice=voice;
+  utt.rate=Math.min(Math.max(rate,0.1),10);utt.pitch=arch.pitch;
+  utt.onstart=()=>{
+    isActive=true;isPaused=false;chunkStartTime=Date.now();
+    chunkDuration=estimateDuration(currentChunkWordCount,rate);
+    setStatus('speaking');startProgressTicker();
+    maybeAcquireWakeLock();
+    const tot='est. '+fmt(estimateDuration(allWords.length,rate));
+    document.getElementById('time-total').textContent=tot;
+    document.getElementById('nv-time-total').textContent=tot;
+  };
+  utt.onboundary=e=>{if(e.name==='word'){const sp=utt.text.substring(0,e.charIndex).trim();currentWordIndex=fromIndex+(sp?sp.split(/\s+/).length:0);}};
+  utt.onend=()=>{const ni=fromIndex+currentChunkWordCount;currentWordIndex=ni;if(ni<allWords.length)continueFromWord(ni);else finishPlayback();};
+  utt.onerror=e=>{if(e.error==='interrupted'||e.error==='canceled')return;isActive=false;isPaused=false;setStatus('idle');clearInterval(progressInterval);};
+  synth.speak(utt);
+}
+
+function finishPlayback(){
+  isActive=false;isPaused=false;clearInterval(progressInterval);
+  updateScrubberUI(1);
+  document.getElementById('time-left').textContent='finished';
+  document.getElementById('nv-time-left').textContent='finished';
+  maybeReleaseWakeLock();
+  setStatus('done');
+  setTimeout(()=>{updateScrubberUI(0);document.getElementById('time-left').textContent='—';document.getElementById('nv-time-left').textContent='—';setStatus('idle');},3500);
+}
+
+function setStatus(state){
+  const dot=document.getElementById('pulse-dot'),txt=document.getElementById('status-text');
+  const lbl=document.getElementById('play-label'),path=document.getElementById('play-path');
+  const nvDot=document.getElementById('nv-dot'),nvSt=document.getElementById('nv-status');
+  const nvLbl=document.getElementById('nv-play-label'),nvPath=document.getElementById('nv-play-path');
+  dot.className='pulse-dot'+(state==='speaking'?' active':state==='paused'?' paused':'');
+  if(state==='speaking'){txt.textContent='narrating…';lbl.textContent='Pause';path.setAttribute('d','M3 2h3v10H3V2zm5 0h3v10H8V2z');nvDot.className='nv-dot';nvSt.textContent='narrating…';nvLbl.textContent='Pause';nvPath.setAttribute('d','M3 2h3v10H3V2zm5 0h3v10H8V2z');}
+  else if(state==='paused'){txt.textContent='paused';lbl.textContent='Resume';path.setAttribute('d','M3 2L12 7L3 12Z');nvDot.className='nv-dot paused';nvSt.textContent='paused';nvLbl.textContent='Resume';nvPath.setAttribute('d','M3 2L12 7L3 12Z');}
+  else if(state==='done'){txt.textContent='chapter complete';lbl.textContent='Begin reading';path.setAttribute('d','M3 2L12 7L3 12Z');nvDot.className='nv-dot paused';nvSt.textContent='chapter complete';nvLbl.textContent='Done';nvPath.setAttribute('d','M3 2L12 7L3 12Z');}
+  else{txt.textContent='at rest';lbl.textContent='Begin reading';path.setAttribute('d','M3 2L12 7L3 12Z');nvDot.className='nv-dot paused';nvSt.textContent='at rest';nvLbl.textContent='Begin reading';nvPath.setAttribute('d','M3 2L12 7L3 12Z');}
+}
+
+function startFromBeginning(){
+  const text=textInput.value.trim();if(!text)return;
+  allWords=text.split(/\s+/);currentWordIndex=0;
+  const tot='est. '+fmt(estimateDuration(allWords.length,parseFloat(speedSlider.value)*selectedArchetype.rateAdj));
+  document.getElementById('time-total').textContent=tot;
+  document.getElementById('nv-time-total').textContent=tot;
+  continueFromWord(0);
+}
+
+document.getElementById('play-btn').addEventListener('click',()=>{
+  const text=textInput.value.trim();if(!text){textInput.focus();return;}
+  if(isActive&&!isPaused){synth.pause();isActive=false;isPaused=true;chunkStartTime=null;clearInterval(progressInterval);setStatus('paused');return;}
+  if(isPaused){isPaused=false;continueFromWord(currentWordIndex);setStatus('speaking');return;}
+  startFromBeginning();
+});
+document.getElementById('stop-btn').addEventListener('click',()=>{
+  synth.cancel();isActive=false;isPaused=false;clearInterval(progressInterval);
+  currentWordIndex=0;chunkStartTime=null;updateScrubberUI(0);
+  document.getElementById('time-left').textContent='—';document.getElementById('time-total').textContent='—';setStatus('idle');
+});
+
+// ═══════════════════════════════════════════
+//  NARRATION VIEW
+// ═══════════════════════════════════════════
+const narrationView=document.getElementById('narration-view');
+function openNarrationView(){
+  document.getElementById('nv-voice-name').textContent=selectedArchetype.name;
+  document.getElementById('nv-voice-flavor').textContent=selectedArchetype.flavor;
+  narrationView.classList.add('open');
+  synth.cancel();isActive=false;isPaused=false;currentWordIndex=0;
+  updateScrubberUI(0);
+  setTimeout(()=>startFromBeginning(),400);
+}
+function closeNarrationView(){
+  narrationView.classList.remove('open');
+  synth.cancel();isActive=false;isPaused=false;currentWordIndex=0;
+  clearInterval(progressInterval);updateScrubberUI(0);
+  document.getElementById('time-left').textContent='—';setStatus('idle');
+}
+document.getElementById('nv-play-btn').addEventListener('click',()=>{
+  if(isActive&&!isPaused){synth.pause();isActive=false;isPaused=true;chunkStartTime=null;clearInterval(progressInterval);setStatus('paused');return;}
+  if(isPaused){isPaused=false;continueFromWord(currentWordIndex);setStatus('speaking');return;}
+  startFromBeginning();
+});
+document.getElementById('nv-stop-btn').addEventListener('click',closeNarrationView);
+
+// ═══════════════════════════════════════════
+//  PICTURE IN PICTURE
+// ═══════════════════════════════════════════
+let pipWindow = null;
+
+// Show PiP button only if API is supported
+if ('documentPictureInPicture' in window) {
+  document.getElementById('btn-pip').style.display = 'inline-flex';
+}
+
+document.getElementById('btn-pip').addEventListener('click', async () => {
+  // If PiP already open, close it
+  if (pipWindow) { pipWindow.close(); pipWindow = null; return; }
+
+  try {
+    pipWindow = await window.documentPictureInPicture.requestWindow({
+      width: 300,
+      height: 180,
+    });
+
+    // Inject styles into PiP window
+    const style = pipWindow.document.createElement('style');
+    style.textContent = `
+      * { box-sizing: border-box; margin: 0; padding: 0; font-family: serif; }
+      body { background: #1c1810; color: #e8dfd0; display: flex; flex-direction: column;
+             align-items: center; justify-content: center; height: 100vh; padding: 16px; gap: 10px; }
+      .pip-voice { font-size: 17px; font-style: italic; opacity: 0.9; text-align: center; }
+      .pip-status { font-size: 12px; opacity: 0.5; letter-spacing: 0.06em; text-transform: uppercase; }
+      .pip-bar-wrap { width: 100%; background: rgba(255,255,255,0.1); border-radius: 2px; height: 3px; }
+      .pip-bar-fill { height: 100%; background: #c49a2a; border-radius: 2px; width: 0%; transition: width 0.3s linear; }
+      .pip-time { font-size: 11px; opacity: 0.45; font-style: italic; }
+      .pip-btns { display: flex; gap: 8px; }
+      .pip-btn { padding: 6px 16px; border: 0.5px solid rgba(255,255,255,0.2); border-radius: 3px;
+                 background: transparent; color: #e8dfd0; font-size: 13px; font-style: italic;
+                 cursor: pointer; font-family: serif; transition: all 0.12s; }
+      .pip-btn:hover { border-color: #c49a2a; color: #c49a2a; }
+    `;
+    pipWindow.document.head.appendChild(style);
+
+    // Build PiP UI
+    pipWindow.document.body.innerHTML = `
+      <div class="pip-voice" id="pip-voice">${selectedArchetype.name}</div>
+      <div class="pip-status" id="pip-status">narrating…</div>
+      <div class="pip-bar-wrap"><div class="pip-bar-fill" id="pip-bar"></div></div>
+      <div class="pip-time" id="pip-time">—</div>
+      <div class="pip-btns">
+        <button class="pip-btn" id="pip-pause">Pause</button>
+        <button class="pip-btn" id="pip-stop">Stop</button>
+      </div>
+    `;
+
+    // Wire up buttons — they call back into the main window
+    pipWindow.document.getElementById('pip-pause').addEventListener('click', () => {
+      document.getElementById('play-btn').click();
+    });
+    pipWindow.document.getElementById('pip-stop').addEventListener('click', () => {
+      document.getElementById('stop-btn').click();
+      pipWindow.close();
+    });
+
+    // Sync progress bar and status from main window into PiP
+    function syncPip() {
+      if (!pipWindow || pipWindow.closed) { clearInterval(pipSyncInterval); return; }
+      const fill = document.getElementById('scrubber-fill').style.width;
+      const timeLeft = document.getElementById('time-left').textContent;
+      const statusTxt = document.getElementById('status-text').textContent;
+      pipWindow.document.getElementById('pip-bar').style.width = fill;
+      pipWindow.document.getElementById('pip-time').textContent = timeLeft;
+      pipWindow.document.getElementById('pip-status').textContent = statusTxt;
+      pipWindow.document.getElementById('pip-voice').textContent = selectedArchetype.name;
+      // Update pause button label
+      const isPlaying = isActive && !isPaused;
+      pipWindow.document.getElementById('pip-pause').textContent = isPlaying ? 'Pause' : 'Resume';
+    }
+
+    const pipSyncInterval = setInterval(syncPip, 300);
+
+    pipWindow.addEventListener('pagehide', () => {
+      clearInterval(pipSyncInterval);
+      pipWindow = null;
+      document.getElementById('btn-pip').textContent = '⧉ Float player';
+    });
+
+    document.getElementById('btn-pip').textContent = '⧉ Close float';
+
+  } catch(e) {
+    alert('PiP not supported or permission denied: ' + e.message);
+  }
+});
+
+// ═══════════════════════════════════════════
+//  RECORDING MODAL
+// ═══════════════════════════════════════════
+const recModal=document.getElementById('rec-modal');
+document.getElementById('open-rec-modal').addEventListener('click',()=>{
+  if(!textInput.value.trim()){alert('Fetch or paste chapter text first.');return;}
+  recModal.classList.add('open');
+});
+document.getElementById('close-rec-modal').addEventListener('click',()=>recModal.classList.remove('open'));
+recModal.addEventListener('click',e=>{if(e.target===recModal)recModal.classList.remove('open');});
+document.querySelectorAll('.os-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.os-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.os-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-'+tab.dataset.os).classList.add('active');
+  });
+});
+(function detectOS(){
+  const ua=navigator.userAgent,os=ua.includes('Win')?'win':ua.includes('Linux')&&!ua.includes('Mac')?'linux':'mac';
+  document.querySelector(`.os-tab[data-os="${os}"]`).click();
+})();
+document.getElementById('launch-narration-view').addEventListener('click',()=>{
+  recModal.classList.remove('open');
+  openNarrationView();
+});
+</script>
+</body>
+</html>
